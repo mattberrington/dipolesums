@@ -12,13 +12,28 @@ def Ry(theta):
 def Rz(theta):
     return np.array([[np.cos(theta),-np.sin(theta),0],[np.sin(theta),np.cos(theta),0],[0,0,1]])
 
-class Lattice:
-	def __init__(self,a_len,b_len,c_len,beta):
-		#I rotate everything by 67 degrees so that the axial component of the g tensor is now aligned with the z-axis
-		self.a = Ry(67*pi/180) @ np.array([a_len,0,0])
-		self.b = Ry(67*pi/180) @ np.array([0,-b_len,0])
-		self.c = Ry(67*pi/180) @ Ry(-beta) @ np.array([c_len,0,0])
+class MonoclinicLattice:
+	def __init__(self):
 		self.Position = {}
+
+	def Axes(self,a_len,b_len,c_len,beta):
+		""" Define the crystalographic properties of the lattice"""
+		self.a = np.array([0,0,a_len])
+		self.b = np.array([0,b_len,0])
+		self.c = Ry(-beta) @ np.array([0,0,c_len])
+
+	def gTensor(self,gx,gy,gz,zeta_a):
+		""" Define the g-tensor of the crystal.
+		Assumes a axial tensor in the AC plane
+		"""
+		self.gx = gx	
+		self.gy = gy
+		self.gz = gz
+		# rotate the crystal coordinates so that I'm now in the coordinate system 
+		# given by the zeeman tensor's principal axes
+		self.a = Ry(zeta_a) @ self.a
+		self.b = Ry(zeta_a) @ self.b
+		self.c = Ry(zeta_a) @ self.c
 
 	def Ion1Position(self,x,y,z):
 		#Note Ive swapped a and c to match the niemiejer paper
@@ -45,20 +60,26 @@ class Lattice:
 
 	
 	def LatticePoints(self,R):
-		#Generates a lattice with spacing twice the unit cell vectors, centred on (0,0,0)
+		"""Generates a lattice with spacing twice the unit cell vectors, centred on (0,0,0)
+		returns a list of lattice sites across a grid of size 2R x 2R x 2R, which will encompass
+		the relevant sphere
+		"""
+
+		#Calculate the number of lattice points needed in each direction to cover a length of R
+		#I use the ceiling function so that when I shift the origin by a one unit cell vector,
+		#I still cover all lattive points within a distance of R
+		Na = int(np.ceil(R/np.linalg.norm(2*self.a)))
+		Nb = int(np.ceil(R/np.linalg.norm(2*self.b)))
+		Nc = int(np.ceil(R/np.linalg.norm(2*self.c)))
+
+		#calculate the number of vertices in a grid that covers the sphere
+		#A sphere of radius R fits within a grid of size 2R x 2R x 2R
+		#Adding one to account for origin
+		number_vertices = (2*Na+1)*(2*Nb+1)*(2*Nc+1)
+		vertices = np.empty((number_vertices,3))
 		
-		Na = int(np.ceil(R/np.sqrt(2*self.a[0]**2+2*self.a[1]**2+2*self.a[2]**2)))
-		Nb = int(np.ceil(R/np.sqrt(2*self.b[0]**2+2*self.b[1]**2+2*self.b[2]**2)))
-		Nc = int(np.ceil(R/np.sqrt(2*self.c[0]**2+2*self.c[1]**2+2*self.c[2]**2)))
-		
-		vertices = np.zeros(((2*Na+1)*(2*Nb+1)*(2*Nc+1),3))
-		
+		# populate the vertices list with the positions of a lattice with double spacing
 		n = 0
-		# for i in np.arange(-Na,Na+1):   	
-		# 	for j in np.arange(-Nb,Nb+1):   
-		# 		for k in np.arange(-Nc,Nc+1):                  
-		# 			vertices[n]=[i*2*self.a[0]+j*2*self.b[0]+k*2*self.c[0],i*2*self.a[1]+j*2*self.b[1]+k*2*self.c[1],i*2*self.a[2]+j*2*self.b[2]+k*2*self.c[2]]
-		# 			n += 1
 		for i in np.arange(-Na,Na+1):   	
 			for j in np.arange(-Nb,Nb+1):   
 				for k in np.arange(-Nc,Nc+1):                  
@@ -68,15 +89,55 @@ class Lattice:
 		return vertices
 
 	def ShiftAndTrim(self,vertices,R,iNumber,iLetter,jNumber,jLetter):
+		"""
+		Given a lattice, it shifts of origin to be centred on the jth ion
+		Then return all latice points within R of the ith ion
+		"""
+
 		#Shift vertices to be the lattice generated the from the jth position
 		vertices = vertices + self.Position[str(jNumber) + jLetter]
 		#Calculate distances from the ith atom to each other atom
 		distance = np.sqrt(np.sum(np.power(vertices - self.Position[str(iNumber) + iLetter],2),axis=1))
 		#only keep the locations of which are within a distance R from ion i
+		#I take the intersection with non-zero distances to avoid counting origin when ith and jth ions are equal
 		vertices = vertices[(distance < R) & (distance != 0.0)]
 		
 		return vertices
 
+
+	
+		jLetter = 'A'
+		while True:
+			with open(jLetter+'MatrixValuesDyCl3New.csv', 'w') as csvfile:
+				writer = csv.writer(csvfile, lineterminator = '\n')
+				
+				verticesbase = self.LatticePoints(R)
+				
+				for jNumber in np.arange(1,9): 
+					
+					iVector = self.Position['1A']
+
+					vertices = self.ShiftAndTrim(verticesbase,R,1,'A',jNumber,jLetter)				
+					
+					x = vertices[:,0] - iVector[0]				
+					y = vertices[:,1] - iVector[1]
+					z = vertices[:,2] - iVector[2]
+					r = np.sqrt(np.sum(np.power(vertices - iVector,2),axis=1))
+					 
+					xx = sum(((r**2-3*x**2)/r**5))
+					yy = sum(((r**2-3*y**2)/r**5))
+					zz = sum(((r**2-3*z**2)/r**5))
+					xy = sum(((-3*x*y)/r**5))
+					xz = sum(((-3*x*z)/r**5))
+					yz = sum(((-3*y*z)/r**5)) 
+			                       
+					writer.writerow([xx,xy,xz])
+					writer.writerow([xy,yy,yz])
+					writer.writerow([xz,yz,zz])
+			if jLetter == 'A':
+				jLetter = 'B'
+			else:
+				break
 
 	def WriteLatticeSums(self,R):
 		jLetter = 'A'
@@ -112,10 +173,6 @@ class Lattice:
 			else:
 				break
 
-	def gTensor(self,gx,gy,gz):
-		self.gx = gx
-		self.gy = gy
-		self.gz = gz
 
 	def CreateAMatrix(self,factor,demagnetisation):
 	    with open('AMatrixValuesDyCl3New.csv') as csvfile:
@@ -211,18 +268,16 @@ class Lattice:
 			writer = csv.writer(csvfile, lineterminator = '\n')  
 			for key in eigvals:                   
 				writer.writerow(eigvals[key])
-		print(eigvals[1])
+		# print(eigvals[1])
 
 			
 
 
-DyCl3 = Lattice(9.61,6.49,7.87,93.65*pi/180)
-ErCl3 = Lattice(9.57,6.79,7.84,93.65*pi/180)
-print('a:')
-print(np.dot(np.cross(ErCl3.a,ErCl3.b),ErCl3.c))
-DyCl3.gTensor(1.76,1.76,16.52)
-DyCl3.Ion1Position(0.25,0.1521,0.25)
-DyCl3.Ion2Position(0.75,0.8479,0.75)
+DyCl3 = MonoclinicLattice()
+DyCl3.Axes(9.61, 6.49, 7.87, 93.65*pi/180)
+DyCl3.gTensor(1.76, 1.76, 16.52, 157*pi/180)
+DyCl3.Ion1Position(0.25, 0.1521, 0.25)
+DyCl3.Ion2Position(0.75, 0.8479, 0.75)
 DyCl3.WriteLatticeSums(100)
 #SI UNITS
 mB=9.274*10**(-24) 
