@@ -1,0 +1,154 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+
+\begin{document}
+
+\title{Collective resonances of spins with mainly dipolar interactions}
+
+\author{Matt B and Jono, with guidance from Jevon}
+
+\maketitle
+
+
+From T. Niemeyer \emph{Physica} {\bf 57} (1972) 281-293 we have that the Hamiltonian for an array of spins interacting only through dipole-dipole forces is
+\begin{align}
+ H= \sum_{i<j}P^{\alpha\beta}_{ij} S^\alpha_i S^\beta_j
+\end{align}
+where $S$ are spin operators, the subscripts $i$, $j$ refer to labels on different spins, the superscript Greek letters are direction components (ie $\alpha \in \{x,y,z\}$) and 
+\begin{align}
+P_{ij}^{\alpha\beta}=
+\sum_\nu\sum_\lambda\dfrac{\mu^2_B}{r^3_{ij}}\left(g_i^{\nu\alpha}g_j^{\lambda\beta}\delta_{\nu\lambda}-3g_i^{\alpha\lambda}g_j^{\beta\nu}\dfrac{r_{ij}^\lambda r_{ij}^\nu}{r_{ij}^2}\right)
+\end{align}
+
+where $r_{ij}$ is the distance between spins $i$ and $j$ and $g_j^{\alpha\beta}$ is the $\alpha\beta$ component of the anisotropic g-tensor. If the crystal allows us to choose a rectangular coordinate system where for all spins
+$$ g^{\alpha\nu}=\delta_{\alpha\nu}g^\alpha \qquad g_x=g_y=g_\perp \qquad g_z=g_{||}$$ then the $P$ term would simplify to 
+$$P_{ij}^{\alpha\beta}=\dfrac{\mu^2_B}{r^3_{ij}}\left(g^{\alpha}g^{\beta}\delta_{\alpha\beta}-3g^{\alpha}g^{\beta}\dfrac{r_{ij}^\alpha r_{ij}^\beta}{r_{ij}^2}\right)$$
+Which is the more familiar form that I've been coding up and that Niemeyer treats in his papers. For now we'll stick with the general form as it doesn't make any difference. To make sum notation simpler lets modify $P^{\alpha\beta}_{ij}$ to be
+\begin{align}
+P_{ij}^{\alpha\beta}=\begin{cases}
+\sum_\nu\sum_\lambda\dfrac{\mu^2_B}{r^3_{ij}}\left(g_i^{\nu\alpha}g_j^{\lambda\beta}\delta_{\nu\lambda}-3g_i^{\alpha\lambda}g_j^{\beta\nu}\dfrac{r_{ij}^\lambda r_{ij}^\nu}{r_{ij}^2}\right), & \text{if }i\neq j\\
+0, & \text{if }i=j
+\end{cases}
+\end{align}
+So we can now write the Hamiltonian as
+\begin{align}
+H=\dfrac{1}{2}\sum_\alpha\sum_\beta\sum_i\sum_j P_{ij}^{\alpha\beta} S_i^\alpha S_j^\beta
+\end{align}
+
+To get dynamics of this system we start by using the Heisenberg equation of motion for an arbitrary spin operator $S^\delta_k$, which gives
+\begin{align}
+i\hbar \frac{d}{d t} S^\delta_k &= [S_k^\delta,H]\\
+&= [S_k^\delta,\dfrac{1}{2}\sum_\alpha\sum_\beta\sum_i\sum_j P_{ij}^{\alpha\beta} S_i^\alpha S_j^\beta]\\
+\intertext{By linearity of commutators and since $P^{\alpha\beta}_{ij}$ is a scalar}
+&= \frac{1}{2}\sum_\alpha \sum_\beta \sum_i \sum_j P^{\alpha\beta}_{ij}[S^\delta_k,S^\alpha_iS^\beta_j]\\
+\intertext{Expanding the commutator}
+&= \dfrac{1}{2}\sum_\alpha \sum_\beta \sum_i \sum_j P^{\alpha\beta}_{ij} \left(S^\alpha_i[S^\delta_k,S^\beta_j]+[S^\delta_k,S^\alpha_i]S^\beta_j\right)\\
+\intertext{Using $[S^\alpha_i,S^\beta_j]=\sum_\gamma i\hbar \epsilon^{\alpha\beta\gamma}S^\gamma_i\delta_{ij}$}
+&= \dfrac{1}{2}\sum_\alpha \sum_\beta \sum_\gamma \sum_i \sum_j P^{\alpha\beta}_{ij} \left(S^\alpha_i i\hbar\epsilon^{\delta\beta\gamma}\delta_{kj}S^\gamma_k+i\hbar\epsilon^{\delta\alpha\gamma}\delta_{ki}S^\gamma_kS^\beta_j\right)\\
+&= \dfrac{i\hbar}{2}\left(
+\sum_{\alpha\beta\gamma} \sum_{ij} P^{\alpha\beta}_{ij}\epsilon^{\delta\beta\gamma}\delta_{kj}S^\alpha_iS^\gamma_k
++\sum_{\alpha\beta\gamma} \sum_{ij} P^{\alpha\beta}_{ij}\epsilon^{\delta\alpha\gamma}\delta_{ki}S^\gamma_kS^\beta_j
+\right)\\
+\intertext{Summing over $j$ in the first term and $i$ in the second term}
+&= \dfrac{i\hbar}{2}\left(
+\sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}S^\alpha_iS^\gamma_k
++ \sum_{\alpha\beta\gamma} \sum_{j} P^{\alpha\beta}_{kj}\epsilon^{\delta\alpha\gamma}S^\gamma_kS^\beta_j
+\right)\\
+\intertext{In the second sum I relabel $i \leftrightarrow j$ and $\alpha \leftrightarrow \beta$}
+&= \dfrac{i\hbar}{2}\left(
+\sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}S^\alpha_iS^\gamma_k
++ \sum_{\beta\alpha\gamma} \sum_{i} P^{\beta\alpha}_{ki}\epsilon^{\delta\beta\gamma}S^\gamma_kS^\alpha_i
+\right)\\
+\intertext{When $k\neq i$ the $S$ terms commute and when $k=i$ the $P$ term is zero anyway. Thus we can commute the spin operators in this expression}
+&= \dfrac{i\hbar}{2}\left(
+\sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}S^\alpha_iS^\gamma_k
++ \sum_{\beta\alpha\gamma} \sum_{i} P^{\beta\alpha}_{ki}\epsilon^{\delta\beta\gamma}S^\alpha_iS^\gamma_k
+\right)\\
+\intertext{Also $P_{ij}^{\alpha\beta}=P_{ji}^{\beta\alpha}$}
+&= \dfrac{i\hbar}{2}\left(
+\sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}S^\alpha_iS^\gamma_k
++ \sum_{\beta\alpha\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}S^\alpha_iS^\gamma_k
+\right)\\
+&= i\hbar\sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}S^\alpha_iS^\gamma_k
+\end{align}
+
+\begin{align}
+\intertext{Therefore}
+\frac{d}{d t} S^\delta_k & = \sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}S^\alpha_iS^\gamma_k
+\label{eqn:master}
+\end{align}
+
+Woo! We have an equation. Let see if we get some insight by assuming that the spin operator can be written as a time independent and a time dependent component that is a perturbation. ie:
+$$S = (S_0) + (\delta S)$$
+By subbing into (\ref{eqn:master}) we get:
+\begin{align} 
+\frac{d}{d t}\Big[ (S_0)^\delta_k+(\delta S)^\delta_k \Big] & = \sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}\Big[(S_0)^\alpha_i+(\delta S)^\alpha_i\Big]\Big[(S_0)^\gamma_k+(\delta S)^\gamma_k\Big]\\
+& = \sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}
+\Big[(S_0)^\alpha_i(S_0)^\gamma_k + (S_0)^\alpha_i(\delta S)^\gamma_k + (\delta S)^\alpha_i(S_0)^\gamma_k + (\delta S)^\alpha_i(\delta S)^\gamma_k\Big]
+\intertext{Ignoring the quadratic perturbation term}
+& = \sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}
+\Big[(S_0)^\alpha_i(S_0)^\gamma_k + (S_0)^\alpha_i(\delta S)^\gamma_k + (\delta S)^\alpha_i(S_0)^\gamma_k\Big]
+\label{eqn:working1}
+\end{align}
+Lets now consider only the time-independent part of the spin operators, so that $S=(S_0)$. Then we get:
+\begin{align}
+\frac{d}{d t} \Big[(S_0)^\delta_k\Big] & = \sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}\Big[(S_0)^\alpha_i\Big]\Big[(S_0)^\gamma_k\Big]\\
+& = \sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}(S_0)^\alpha_i(S_0)^\gamma_k\\
+\intertext{But this is obviously zero, as we defined this as the time independent part. So we have}
+\frac{d}{d t} \Big[(S_0)^\delta_k\Big] & = \sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}(S_0)^\alpha_i(S_0)^\gamma_k = 0
+\end{align}
+Therefore the first term in the sum of (\ref{eqn:working1}) is zero and we are left with
+\begin{align}
+\frac{d}{d t}(\delta S)^\delta_k & = \sum_{\alpha\beta\gamma} \sum_{i} P^{\alpha\beta}_{ik}\epsilon^{\delta\beta\gamma}
+\Big[(S_0)^\alpha_i(\delta S)^\gamma_k + (\delta S)^\alpha_i(S_0)^\gamma_k\Big]
+\label{eq:start}
+\end{align}
+
+This looks more like what we want. We want to manipulate this into the form
+
+\begin{equation}
+    \frac{\partial}{\partial t}(\delta S)^{\delta}_k = \sum_{i,\alpha} M_{ki}^{\delta \alpha}(\delta S)^{\alpha}_i
+    \label{eq:matrixform}
+\end{equation}
+
+The second term of \eqref{eq:start} is already expressed in this form:
+
+\begin{align}
+    \sum_{i, \alpha}\big[ \sum_{\beta,\gamma}P_{ik}^{\alpha \beta}\epsilon^{\delta \beta \gamma}(S_0)_k^{\gamma}\big](\delta S)_i^{\alpha}
+    \label{eq:second_term_final}
+\end{align}
+
+Where the factor in the square brackets can be taken to be $M_{ki}^{\delta\alpha}$. Now consider just the first term:
+
+\begin{align}
+    \sum_{\alpha, \beta,\gamma,i}P_{ik}^{\alpha \beta}\epsilon^{\delta \beta \gamma}(S_0)_i^{\alpha}(\delta S)^{\gamma}_k 
+    \label{eq:first_term}
+\end{align}
+
+Relabelling $i \rightarrow j$, $k \rightarrow i$ and swapping $\gamma \leftrightarrow \alpha$ we get
+
+\begin{align}
+    \sum_{\gamma, \beta,\alpha,j}P_{ji}^{\gamma \beta}\epsilon^{\delta \beta \alpha}(S_0)_j^{\gamma}(\delta S)^{\alpha}_i 
+\end{align}
+
+Adding a Kronecker delta $\delta_{ik}$ we can then sum over $i$ to get 
+
+\begin{align}
+    \sum_{i\alpha}\delta_{ik}\big[\sum_{\gamma, \beta,j}P_{ji}^{\gamma \beta}\epsilon^{\delta \beta \alpha}(S_0)_j^{\gamma}\big](\delta S)^{\alpha}_i \label{eq:first_term_final}
+\end{align}
+
+Which if expanded out is equivalent to \eqref{eq:first_term}. Combining \eqref{eq:first_term_final} and \eqref{eq:second_term_final} we get 
+
+\begin{equation}
+     \frac{\partial}{\partial t}(\delta S)^{\delta}_k = \sum_{i,\alpha}\Big[\delta_{ik}\big[\sum_{\gamma, \beta,j}P_{ji}^{\gamma \beta}\epsilon^{\delta \beta \alpha}(S_0)_j^{\gamma}\big] + \big[ \sum_{\beta,\gamma}P_{ik}^{\alpha \beta}\epsilon^{\delta \beta \gamma}(S_0)_k^{\gamma}\big]\Big](\delta S)_i^{\alpha}
+\end{equation}
+
+Which is of the form \eqref{eq:matrixform}, with 
+
+\begin{equation}
+    M_{ki}^{\delta\alpha} = \delta_{ik}\big[\sum_{\gamma, \beta,j}P_{ji}^{\gamma \beta}\epsilon^{\delta \beta \alpha}(S_0)_j^{\gamma}\big] + \big[ \sum_{\beta,\gamma}P_{ik}^{\alpha \beta}\epsilon^{\delta \beta \gamma}(S_0)_k^{\gamma}\big]
+\end{equation}
+
+We can now input and diagonalize this matrix on a computer using the same vector structure as the Luttinger-Tisza method.\\
+\end{document}
