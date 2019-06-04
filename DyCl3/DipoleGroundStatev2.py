@@ -3,8 +3,13 @@ import numpy as np
 import csv
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-
+#SI UNITS
 pi = np.pi
+mB=9.274*10**(-24)
+k=1.380*10**(-23)
+NA=6.022*10**23
+mu0=4*pi*10**(-7)
+
 
 #define rotation matrices
 def Rx(theta):
@@ -16,7 +21,26 @@ def Rz(theta):
 
 class MonoclinicLattice:
 	def __init__(self):
-		self.position = {}
+		#Based of positions given in Figure 1 of Niemeijer paper
+		self.position_map = {}
+		self.position_map[1] = [0,0,0]
+		self.position_map[2] = [1,0,0]
+		self.position_map[3] = [0,0,1]
+		self.position_map[4] = [1,0,1]
+		self.position_map[5] = [0,1,0]
+		self.position_map[6] = [1,1,0]
+		self.position_map[7] = [0,1,1]
+		self.position_map[8] = [1,1,1]
+
+		self.position_map_inverse = {}
+		self.position_map_inverse[0,0,0] = 1
+		self.position_map_inverse[1,0,0] = 2
+		self.position_map_inverse[0,0,1] = 3
+		self.position_map_inverse[1,0,1] = 4
+		self.position_map_inverse[0,1,0] = 5
+		self.position_map_inverse[1,1,0] = 6
+		self.position_map_inverse[0,1,1] = 7
+		self.position_map_inverse[1,1,1] = 8
 
 		self.epsilonq = {}
 		self.epsilonq[1] = np.array([1, 1, 1, 1, 1, 1, 1, 1])
@@ -27,6 +51,8 @@ class MonoclinicLattice:
 		self.epsilonq[6] = np.array([1, 1,-1,-1,-1,-1, 1, 1])
 		self.epsilonq[7] = np.array([1,-1,-1, 1, 1,-1,-1, 1])
 		self.epsilonq[8] = np.array([1,-1, 1,-1,-1, 1,-1, 1])
+
+		self.position = {}
 
 	def axes(self,a_len,b_len,c_len,beta):
 		""" Define the crystalographic properties of the lattice"""
@@ -49,64 +75,71 @@ class MonoclinicLattice:
 		self.c = Ry(zeta_a) @ self.c
 
 	def ion1_position(self,x,y,z):
-		#Based of positions given in Figure 1 of Niemeijer paper
+		
+		axes_vector = np.array([self.a,self.b,self.c])
 		self.ion1 = x*self.a + y*self.b + z*self.c
-		self.position['1A'] = np.array([0,0,0]) + self.ion1
-
-		self.position['2A'] = self.a + self.ion1
-		self.position['3A'] = self.c + self.ion1
-		self.position['4A'] = self.a + self.c + self.ion1
-		self.position['5A'] = self.b + self.ion1
-		self.position['6A'] = self.a + self.b + self.ion1
-		self.position['7A'] = self.b + self.c + self.ion1
-		self.position['8A'] = self.a + self.b + self.c + self.ion1
+		self.position['1A'] = np.dot(self.position_map[1],axes_vector) + self.ion1
+		self.position['2A'] = np.dot(self.position_map[2],axes_vector) + self.ion1
+		self.position['3A'] = np.dot(self.position_map[3],axes_vector) + self.ion1
+		self.position['4A'] = np.dot(self.position_map[4],axes_vector) + self.ion1
+		self.position['5A'] = np.dot(self.position_map[5],axes_vector) + self.ion1
+		self.position['6A'] = np.dot(self.position_map[6],axes_vector) + self.ion1
+		self.position['7A'] = np.dot(self.position_map[7],axes_vector) + self.ion1
+		self.position['8A'] = np.dot(self.position_map[8],axes_vector) + self.ion1
 
 	def ion2_position(self,x,y,z):
+		axes_vector = np.array([self.a,self.b,self.c])
 		self.ion2 = x*self.a + y*self.b + z*self.c
-		self.position['1B'] = np.array([0,0,0]) + self.ion2
-		self.position['2B'] = self.a + self.ion2
-		self.position['3B'] = self.c + self.ion2
-		self.position['4B'] = self.a + self.c + self.ion2
-		self.position['5B'] = self.b + self.ion2
-		self.position['6B'] = self.a + self.b + self.ion2 
-		self.position['7B'] = self.b + self.c + self.ion2
-		self.position['8B'] = self.a + self.b + self.c + self.ion2
-
+		self.position['1B'] = np.dot(self.position_map[1],axes_vector) + self.ion2
+		self.position['2B'] = np.dot(self.position_map[2],axes_vector) + self.ion2
+		self.position['3B'] = np.dot(self.position_map[3],axes_vector) + self.ion2
+		self.position['4B'] = np.dot(self.position_map[4],axes_vector) + self.ion2
+		self.position['5B'] = np.dot(self.position_map[5],axes_vector) + self.ion2
+		self.position['6B'] = np.dot(self.position_map[6],axes_vector) + self.ion2
+		self.position['7B'] = np.dot(self.position_map[7],axes_vector) + self.ion2
+		self.position['8B'] = np.dot(self.position_map[8],axes_vector) + self.ion2
 	
-	def lattice_points(self,R):
-		"""Generates a lattice with spacing twice the unit cell vectors, centred on (0,0,0)
-		returns a list of lattice sites across a grid of size 2R x 2R x 2R, which will encompass
-		the relevant sphere
+	def square_bravais_lattice(self,R,lattice_multiplier=1):
+		"""Generates a lattice constructed from the unit cell vectors, centred on (0,0,0)
+		returns a list of lattice sites across a grid of size 2R x 2R x 2R, which will contain
+		a sphere of radius R
 		"""
+		a = lattice_multiplier*self.a
+		b = lattice_multiplier*self.b
+		c = lattice_multiplier*self.c
 
 		#Calculate the number of lattice points needed in each direction to cover a length of R
 		#I use the ceiling function so that when I shift the origin by a one unit cell vector,
 		#I still cover all lattive points within a distance of R
-		Na = int(np.ceil(R/np.linalg.norm(2*self.a)))
-		Nb = int(np.ceil(R/np.linalg.norm(2*self.b)))
-		Nc = int(np.ceil(R/np.linalg.norm(2*self.c)))
+		Na = int(np.ceil(R/np.linalg.norm(a)))
+		Nb = int(np.ceil(R/np.linalg.norm(b)))
+		Nc = int(np.ceil(R/np.linalg.norm(c)))
 
 		#calculate the number of vertices in a grid that covers the sphere
 		#A sphere of radius R fits within a grid of size 2R x 2R x 2R
 		#Adding one to account for origin
 		number_vertices = (2*Na+1)*(2*Nb+1)*(2*Nc+1)
 		vertices = np.empty((number_vertices,3))
+		vertex_labels = np.empty(number_vertices ,dtype=int)
 		
-		# populate the vertices list with the positions of a lattice with double spacing
+		# populate the vertices list with the positions of a lattice with single spacing
 		n = 0
-		for i in np.arange(-Na,Na+1):   	
-			for j in np.arange(-Nb,Nb+1):   
-				for k in np.arange(-Nc,Nc+1):                  
-					vertices[n]=2*np.dot([[i,j,k]],[[self.a[0],self.a[1],self.a[2]],[self.b[0],self.b[1],self.b[2]],[self.c[0],self.c[1],self.c[2]]])
+		for i in np.arange(-Na,Na+1):
+			for j in np.arange(-Nb,Nb+1):
+				for k in np.arange(-Nc,Nc+1):
+					vertices[n]=np.dot([[i,j,k]],[[a[0],a[1],a[2]],[b[0],b[1],b[2]],[c[0],c[1],c[2]]])
+					vertex_labels[n] = self.position_map_inverse[(i*lattice_multiplier)%2,(j*lattice_multiplier)%2,(k*lattice_multiplier)%2]
 					n += 1
 		
-		return vertices
+		return vertices, vertex_labels
 
-	def lattice_sphere(self,R,iNumber,iLetter,jNumber,jLetter):
+	def spherical_bravais_lattice(self,R,iNumber,iLetter,jNumber,jLetter,lattice_multiplier=1):
 		"""
-		Returns the lattice points of a lattice centred on the jth ion, for all ions within R of the ith ion
+		Returns the bravais lattice generated from the jth ion, for a given mutliplicity
+		Return all ions within R of the ith ion
+		When lattice_multiplier=1, the jth ion has no effect on what's returned
 		"""
-		vertices = self.lattice_points(R)
+		vertices, vertex_labels = self.square_bravais_lattice(R,lattice_multiplier)
 		#Shift vertices to be the lattice generated from the jth position
 		vertices = vertices + self.position[str(jNumber) + jLetter]
 		#Calculate distances from the ith atom to each other atom
@@ -114,15 +147,15 @@ class MonoclinicLattice:
 		#only keep the locations of which are within a distance R from ion i
 		#I take the intersection with non-zero distances to avoid counting origin when ith and jth ions are equal
 		vertices = vertices[(distance < R) & (distance != 0.0)]
+		vertex_labels = vertex_labels[(distance < R) & (distance != 0.0)]
+		#If this is a lattice of the B ions, then change the vertex labels accordingly
+		if jLetter == 'B':
+			vertex_labels += 8
 		
-		return vertices
+		return vertices, vertex_labels
 
 	def lattice_sums(self,R):
-		#SI UNITS
-		mB=9.274*10**(-24) 
-		k=1.380*10**(-23)
-		NA=6.022*10**23 
-		mu0=4*pi*10**(-7) 			
+		
 		factor = (mu0*mB**2)/(32*k*pi)/((10**(-10))**3)
 
 		A = {}
@@ -132,7 +165,7 @@ class MonoclinicLattice:
 
 			#obtain a sphere of lattice points of radius R centred on ion position 1A
 			iVector = self.position['1A']				
-			vertices = self.lattice_sphere(R,1,'A',jNumber,'A')			
+			vertices,_ = self.spherical_bravais_lattice(R,1,'A',jNumber,'A',lattice_multiplier=2)			
 			
 			#calculate the relative position of every lattice point
 			x = vertices[:,0] - iVector[0]				
@@ -154,7 +187,7 @@ class MonoclinicLattice:
 
 			#obtain a sphere of lattice points of radius R centred on ion position 1B			
 			iVector = self.position['1A']				
-			vertices = self.lattice_sphere(R,1,'A',jNumber,'B')		
+			vertices,_ = self.spherical_bravais_lattice(R,1,'A',jNumber,'B',lattice_multiplier=2)		
 			
 			#calculate the relative position of every lattice point
 			x = vertices[:,0] - iVector[0]				
@@ -207,7 +240,6 @@ class MonoclinicLattice:
 		
 		return L
 
-
 	def configuration_energies(self, R):
 		A,B = self.lattice_sums(R)
 		L = self.L_matrices(A,B)
@@ -235,29 +267,55 @@ class MonoclinicLattice:
 		return directions
 
 	def site_field(self, R, config_number, config_idx, ion_number, ion_letter):
-		vertices = self.lattice_sphere(R,ion_number,ion_letter,ion_number,ion_letter)	
-		#SI UNITS
-		mB=9.274*10**(-24) 
-		k=1.380*10**(-23)
-		NA=6.022*10**23 
-		mu0=4*pi*10**(-7) 		
+		vertices, vertex_labels = self.square_bravais_lattice(R)
+		#the ion location where I'm evaluating the magnetic field
+		ion_vector = self.position[str(ion_number)+ion_letter]
+
+		A_vertices, A_vertex_labels = self.spherical_bravais_lattice(R,ion_number,ion_letter,1,'A')
+		B_vertices, B_vertex_labels = self.spherical_bravais_lattice(R,ion_number,ion_letter,1,'B')
+
+		if config_number < 9:
+			spin_orientation = np.append(self.epsilonq[config_number],self.epsilonq[config_number])
+		else:
+			spin_orientation = np.append(self.epsilonq[config_number-8],-self.epsilonq[config_number-8])
+
+
 		#TODO: Check this factor 
-		factor = (mu0)/(2)/((10**(-10))**3)
+		factor = (mu0)/(4*pi)/((10**(-10))**3)
 
-		rx = vertices[:,0]
-		ry = vertices[:,1]
-		rz = vertices[:,2]
-		rtot = np.sqrt(np.sum(np.power(vertices,2),axis=1))
+		A_rx = A_vertices[:,0] - ion_vector[0]
+		A_ry = A_vertices[:,1] - ion_vector[1]
+		A_rz = A_vertices[:,2] - ion_vector[2]
+		A_rtot = np.sqrt(np.sum(np.power(A_vertices - ion_vector,2),axis=1))
 
-		mux, muy, muz = 0.5*mB*np.array([self.gx,self.gy,self.gz])*self.configuration_direction(R)[config_number,config_idx]
+		B_rx = B_vertices[:,0] - ion_vector[0]
+		B_ry = B_vertices[:,1] - ion_vector[1]
+		B_rz = B_vertices[:,2] - ion_vector[2]
+		B_rtot = np.sqrt(np.sum(np.power(B_vertices - ion_vector,2),axis=1))
 
-		Hx = factor*np.sum(-(mux/rtot**3) + (3*(mux*rx + muy*ry + muz*rz)*rx)/(rtot**5))
-		Hy = factor*np.sum(-(muy/rtot**3) + (3*(mux*rx + muy*ry + muz*rz)*ry)/(rtot**5))
-		Hz = factor*np.sum(-(muz/rtot**3) + (3*(mux*rx + muy*ry + muz*rz)*rz)/(rtot**5))
+		direction = self.configuration_direction(R)[config_number,config_idx]
 
-		return Hx, Hy, Hz
+		A_mux = 0.5*mB*self.gx*direction[0]*spin_orientation[A_vertex_labels-1]
+		A_muy = 0.5*mB*self.gy*direction[1]*spin_orientation[A_vertex_labels-1]
+		A_muz = 0.5*mB*self.gz*direction[2]*spin_orientation[A_vertex_labels-1]
+		B_mux = 0.5*mB*self.gx*direction[0]*spin_orientation[B_vertex_labels-1]
+		B_muy = 0.5*mB*self.gy*direction[1]*spin_orientation[B_vertex_labels-1]
+		B_muz = 0.5*mB*self.gz*direction[2]*spin_orientation[B_vertex_labels-1]
 
-	def view_configuration(self, config_number, config_idx):
+		Hx_A = -(A_mux/A_rtot**3) + (3*(A_mux*A_rx + A_muy*A_ry + A_muz*A_rz)*A_rx)/(A_rtot**5)
+		Hy_A = -(A_muy/A_rtot**3) + (3*(A_mux*A_rx + A_muy*A_ry + A_muz*A_rz)*A_ry)/(A_rtot**5)
+		Hz_A = -(A_muz/A_rtot**3) + (3*(A_mux*A_rx + A_muy*A_ry + A_muz*A_rz)*A_rz)/(A_rtot**5)
+
+		Hx_B = -(B_mux/B_rtot**3) + (3*(B_mux*B_rx + B_muy*B_ry + B_muz*B_rz)*B_rx)/(B_rtot**5)
+		Hy_B = -(B_muy/B_rtot**3) + (3*(B_mux*B_rx + B_muy*B_ry + B_muz*B_rz)*B_ry)/(B_rtot**5)
+		Hz_B = -(B_muz/B_rtot**3) + (3*(B_mux*B_rx + B_muy*B_ry + B_muz*B_rz)*B_rz)/(B_rtot**5)
+
+		Hx = factor*(np.sum(Hx_A)+np.sum(Hx_B))
+		Hy = factor*(np.sum(Hy_A)+np.sum(Hy_B))
+		Hz = factor*(np.sum(Hz_A)+np.sum(Hz_B))
+		return np.array([Hx, Hy, Hz])
+
+	def view_configuration(self, config_number, config_idx, R=100):
 		x = np.array([1,0,0])
 		y = np.array([0,1,0])
 		z = np.array([0,0,1])
@@ -269,7 +327,7 @@ class MonoclinicLattice:
 		
 		X, Y, Z = zip(*list(self.position.values()))
 
-		direction = self.configuration_direction(100)[config_number,config_idx]
+		direction = self.configuration_direction(R)[config_number,config_idx]
 
 		U, V, W = zip(*[direction*spins[i] for i in range(16)])
 		fig = plt.figure()
@@ -332,20 +390,36 @@ DyCl3.axes(9.61, 6.49, 7.87, 93.65*pi/180)
 DyCl3.g_tensor(1.76, 1.76, 16.52, 157*pi/180)
 DyCl3.ion1_position(0.25, 0.1521, 0.25)
 DyCl3.ion2_position(0.75, 0.8479, 0.75)
-
-energies = DyCl3.configuration_energies(100)
-directions = DyCl3.configuration_direction(100)
-# DyCl3.view_configuration(12,1)
-print(DyCl3.site_field(100, 12,1,7,'A'))
-
-# print(DyCl3.position['1B'])
-# print(DyCl3.position['2B'])
-# print(DyCl3.position['3B'])
-# print(DyCl3.position['4B'])
-# print(DyCl3.position['5B'])
-# print(DyCl3.position['6B'])
-# print(DyCl3.position['7B'])
-# print(DyCl3.position['8B'])
-
-
-# print(DyCl3.a,DyCl3.b,DyCl3.c)
+print(DyCl3.configuration_energies(100))
+# print(np.linalg.norm(DyCl3.site_field(100, 1, 1, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 1, 2, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 1, 3, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 2, 1, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 2, 2, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 2, 3, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 3, 1, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 3, 2, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 3, 3, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 4, 1, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 4, 2, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 4, 3, 1, 'A')))
+print(np.linalg.norm(DyCl3.site_field(100, 5, 1, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 5, 2, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 5, 3, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 6, 1, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 6, 2, 1, 'A')))
+# print(np.linalg.norm(DyCl3.site_field(100, 6, 3, 1, 'A')))
+# test = MonoclinicLattice()
+# test.axes(1,1,1,90*pi/180)
+# test.g_tensor(1,1,1,0)
+# test.ion1_position(0.25,0.25,0.25)
+# test.ion2_position(0.75,0.75,0.75)
+# print(test.configuration_energies(20))
+# print(test.site_field(20,3,2,1,'A'))
+# print(test.site_field(20,3,2,2,'A'))
+# print(test.site_field(20,3,2,3,'A'))
+# print(test.site_field(20,3,2,4,'A'))
+# print(test.site_field(20,3,2,5,'A'))
+# print(test.site_field(20,3,2,6,'A'))
+# print(test.site_field(20,3,2,7,'A'))
+# print(test.site_field(20,3,2,8,'A'))
