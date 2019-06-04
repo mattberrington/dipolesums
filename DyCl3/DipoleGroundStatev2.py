@@ -3,7 +3,8 @@ import numpy as np
 import csv
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-#SI UNITS
+
+#Define SI units
 pi = np.pi
 mB=9.274*10**(-24)
 k=1.380*10**(-23)
@@ -55,16 +56,38 @@ class MonoclinicLattice:
 		self.position = {}
 
 	def axes(self,a_len,b_len,c_len,beta):
-		""" Define the crystalographic properties of the lattice"""
+		""" Define the crystalographic properties of the lattice
+
+        Args:
+    	a_len (float): length of the 'a' crystal vector
+    	b_len (float): length of the 'b' crystal vector
+    	c_len (float): length of the 'c' crystal vector
+    	beta (float): the angle on the monoclinic crystal in radians. pi/2 = rectangular
+
+        Returns:
+            None
+		"""
 		self.a = np.array([0,0,a_len])
 		self.b = np.array([0,b_len,0])
 		self.c = Ry(-beta) @ np.array([0,0,c_len])
 
-	def g_tensor(self,gx,gy,gz,zeta_a):
-		""" Define the g-tensor of the crystal.
-		Assumes a axial tensor in the AC plane
+	def g_tensor(self,gpara,gperp,zeta_a):
+		""" Define the g-tensor of the crystal. 
+		Assumes an axial tensor in the AC plane
+        
+        Args:
+    	gpara (float): axial component of g tensor
+    	gperp (float): perdendicular component of g tensor
+    	zeta_a (float): the angle between the g tensor's axial direction and the crystal a vector
+
+        Returns:
+            None
 		"""
-		self.gx = gx	
+		gx = gperp
+		gy = gperp
+		gz = gpara
+
+		self.gx = gx
 		self.gy = gy
 		self.gz = gz
 		self.g_grid = np.array([[gx*gx, gx*gy, gx*gz],[gy*gx, gy*gy, gy*gz],[gz*gx, gz*gy, gz*gz]])
@@ -75,7 +98,17 @@ class MonoclinicLattice:
 		self.c = Ry(zeta_a) @ self.c
 
 	def ion1_position(self,x,y,z):
+		""" Define the position of the first ion within the unit cell
+		Populates the position dictionary with the locations of this ion in a double unit cell
 		
+		Args:
+    	x (float): x coordinate expressed as a fraction of crystal a vector (between 0 and 1)
+    	y (float): y coordinate expressed as a fraction of crystal b vector (between 0 and 1)
+    	z (float): z coordinate expressed as a fraction of crystal c vector (between 0 and 1)
+
+        Returns:
+            None
+        """
 		axes_vector = np.array([self.a,self.b,self.c])
 		self.ion1 = x*self.a + y*self.b + z*self.c
 		self.position['1A'] = np.dot(self.position_map[1],axes_vector) + self.ion1
@@ -88,6 +121,17 @@ class MonoclinicLattice:
 		self.position['8A'] = np.dot(self.position_map[8],axes_vector) + self.ion1
 
 	def ion2_position(self,x,y,z):
+		""" Define the position of the second ion within the unit cell
+		Populates the position dictionary with the locations of this ion in a double unit cell
+		
+		Args:
+    	x (float): x coordinate expressed as a fraction of crystal a vector (between 0 and 1)
+    	y (float): y coordinate expressed as a fraction of crystal b vector (between 0 and 1)
+    	z (float): z coordinate expressed as a fraction of crystal c vector (between 0 and 1)
+
+        Returns:
+            None
+        """
 		axes_vector = np.array([self.a,self.b,self.c])
 		self.ion2 = x*self.a + y*self.b + z*self.c
 		self.position['1B'] = np.dot(self.position_map[1],axes_vector) + self.ion2
@@ -103,6 +147,13 @@ class MonoclinicLattice:
 		"""Generates a lattice constructed from the unit cell vectors, centred on (0,0,0)
 		returns a list of lattice sites across a grid of size 2R x 2R x 2R, which will contain
 		a sphere of radius R
+
+		Args:
+    	R (float): The sphere radius (in angstroms) that the square lattice will just cover
+    	lattice_multiplier (int): a value of n will generate a lattice using crystal vectors n times bigger
+   
+        Returns:
+        vertices, vertex_labels (np.array, np.array): an array of coordinates of lattice points, and an array of the vertex names (1 through 8 according to how the points are defined)
 		"""
 		a = lattice_multiplier*self.a
 		b = lattice_multiplier*self.b
@@ -130,7 +181,6 @@ class MonoclinicLattice:
 					vertices[n]=np.dot([[i,j,k]],[[a[0],a[1],a[2]],[b[0],b[1],b[2]],[c[0],c[1],c[2]]])
 					vertex_labels[n] = self.position_map_inverse[(i*lattice_multiplier)%2,(j*lattice_multiplier)%2,(k*lattice_multiplier)%2]
 					n += 1
-		
 		return vertices, vertex_labels
 
 	def spherical_bravais_lattice(self,R,iNumber,iLetter,jNumber,jLetter,lattice_multiplier=1):
@@ -138,7 +188,19 @@ class MonoclinicLattice:
 		Returns the bravais lattice generated from the jth ion, for a given mutliplicity
 		Return all ions within R of the ith ion
 		When lattice_multiplier=1, the jth ion has no effect on what's returned
+
+		Args:
+    	R (float): The radius of the sphere (in angstroms) to include lattice points
+    	iNumber (int): specifies the ith ion's position label
+    	iLetter (string): specific the ith ion's sublattice (must be 'A' or 'B')
+    	jNumber (int): specifies the ith ion's position label
+    	jLetter (string): specific the jth ion's sublattice (must be 'A' or 'B')
+    	lattice_multiplier (int): a value of n will generate a lattice using crystal vectors n times bigger
+   
+        Returns:
+        vertices, vertex_labels (np.array, np.array): an array of coordinates of lattice points, and an array of the vertex names (1 through 8 according to how the points are defined)
 		"""
+
 		vertices, vertex_labels = self.square_bravais_lattice(R,lattice_multiplier)
 		#Shift vertices to be the lattice generated from the jth position
 		vertices = vertices + self.position[str(jNumber) + jLetter]
@@ -155,6 +217,15 @@ class MonoclinicLattice:
 		return vertices, vertex_labels
 
 	def lattice_sums(self,R):
+		"""
+		Calculates the lattice sums as described in NIEMEIJER paper
+		
+		Args:
+    	R (float): The radius of the sphere (in angstroms) to include lattice points
+   
+        Returns:
+        A, B (dict, dict): dictionaries where each entry is an A or B matrix for certain values of i/j
+		"""
 		
 		factor = (mu0*mB**2)/(32*k*pi)/((10**(-10))**3)
 
@@ -179,8 +250,8 @@ class MonoclinicLattice:
 			zz = sum(((r**2-3*z**2)/r**5))
 			xy = sum(((-3*x*y)/r**5))
 			xz = sum(((-3*x*z)/r**5))
-			yz = sum(((-3*y*z)/r**5)) 
-	                       
+			yz = sum(((-3*y*z)/r**5))
+
 			A[jNumber] = factor*np.array([[xx, xy, xz],[xy,yy,yz],[xz,yz,zz]])*self.g_grid
 
 		for jNumber in np.arange(1,9):
@@ -204,9 +275,7 @@ class MonoclinicLattice:
 			yz = sum(((-3*y*z)/r**5)) 
 	                       
 			B[jNumber] = factor*np.array([[xx, xy, xz],[xy,yy,yz],[xz,yz,zz]])*self.g_grid
-
 		return A, B
-		# return A + demag, B + demag
 
 	def L_matrices(self, A, B):
 		#Equation 23
@@ -237,13 +306,21 @@ class MonoclinicLattice:
 			L[key] = LA[key] + LB[key]
 		for key in LA:
 			L[key+8] = LA[key] - LB[key]
+
+		factor = (mu0*mB**2)/(32*k*pi)/((10**(-10))**3)
+		rho = 2/(np.dot(np.cross(DyCl3.a,DyCl3.b),DyCl3.c)) # I've double checked this using molecular weight
+		Nx = 2*pi/3
+		Ny = 2*pi/3
+		Nz = -4*pi/3
+		demagnetisation = np.array([[Nx*rho,0,0],[0,Ny*rho,0],[0,0,Nz*rho]])
+		L[1] = L[1]+factor*demagnetisation*self.g_grid
+
 		
 		return L
 
 	def configuration_energies(self, R):
 		A,B = self.lattice_sums(R)
 		L = self.L_matrices(A,B)
-		w, v = np.linalg.eig(L[12])
 		energies = {}
 
 		for key in L:
@@ -279,8 +356,6 @@ class MonoclinicLattice:
 		else:
 			spin_orientation = np.append(self.epsilonq[config_number-8],-self.epsilonq[config_number-8])
 
-
-		#TODO: Check this factor 
 		factor = (mu0)/(4*pi)/((10**(-10))**3)
 
 		A_rx = A_vertices[:,0] - ion_vector[0]
@@ -302,18 +377,28 @@ class MonoclinicLattice:
 		B_muy = 0.5*mB*self.gy*direction[1]*spin_orientation[B_vertex_labels-1]
 		B_muz = 0.5*mB*self.gz*direction[2]*spin_orientation[B_vertex_labels-1]
 
-		Hx_A = -(A_mux/A_rtot**3) + (3*(A_mux*A_rx + A_muy*A_ry + A_muz*A_rz)*A_rx)/(A_rtot**5)
-		Hy_A = -(A_muy/A_rtot**3) + (3*(A_mux*A_rx + A_muy*A_ry + A_muz*A_rz)*A_ry)/(A_rtot**5)
-		Hz_A = -(A_muz/A_rtot**3) + (3*(A_mux*A_rx + A_muy*A_ry + A_muz*A_rz)*A_rz)/(A_rtot**5)
+		Bx_A = -(A_mux/A_rtot**3) + (3*(A_mux*A_rx + A_muy*A_ry + A_muz*A_rz)*A_rx)/(A_rtot**5)
+		By_A = -(A_muy/A_rtot**3) + (3*(A_mux*A_rx + A_muy*A_ry + A_muz*A_rz)*A_ry)/(A_rtot**5)
+		Bz_A = -(A_muz/A_rtot**3) + (3*(A_mux*A_rx + A_muy*A_ry + A_muz*A_rz)*A_rz)/(A_rtot**5)
 
-		Hx_B = -(B_mux/B_rtot**3) + (3*(B_mux*B_rx + B_muy*B_ry + B_muz*B_rz)*B_rx)/(B_rtot**5)
-		Hy_B = -(B_muy/B_rtot**3) + (3*(B_mux*B_rx + B_muy*B_ry + B_muz*B_rz)*B_ry)/(B_rtot**5)
-		Hz_B = -(B_muz/B_rtot**3) + (3*(B_mux*B_rx + B_muy*B_ry + B_muz*B_rz)*B_rz)/(B_rtot**5)
+		Bx_B = -(B_mux/B_rtot**3) + (3*(B_mux*B_rx + B_muy*B_ry + B_muz*B_rz)*B_rx)/(B_rtot**5)
+		By_B = -(B_muy/B_rtot**3) + (3*(B_mux*B_rx + B_muy*B_ry + B_muz*B_rz)*B_ry)/(B_rtot**5)
+		Bz_B = -(B_muz/B_rtot**3) + (3*(B_mux*B_rx + B_muy*B_ry + B_muz*B_rz)*B_rz)/(B_rtot**5)
 
-		Hx = factor*(np.sum(Hx_A)+np.sum(Hx_B))
-		Hy = factor*(np.sum(Hy_A)+np.sum(Hy_B))
-		Hz = factor*(np.sum(Hz_A)+np.sum(Hz_B))
-		return np.array([Hx, Hy, Hz])
+		Bx = factor*(np.sum(Bx_A)+np.sum(Bx_B))
+		By = factor*(np.sum(By_A)+np.sum(By_B))
+		Bz = factor*(np.sum(Bz_A)+np.sum(Bz_B))
+
+		if(config_number == 1):
+			rho = 2/(np.dot(np.cross(DyCl3.a,DyCl3.b),DyCl3.c))/((10**(-10))**3)
+			mux = 0.5*mB*DyCl3.gx*direction[0]
+			muy = 0.5*mB*DyCl3.gy*direction[1]
+			muz = 0.5*mB*DyCl3.gz*direction[2]
+			M = rho*np.array([mux,muy,muz])
+			Bcavity = mu0*M/3
+			Bx, By, Bz = np.array([Bx, By,Bz]) + Bcavity
+
+		return np.array([Bx, By, Bz])
 
 	def view_configuration(self, config_number, config_idx, R=100):
 		x = np.array([1,0,0])
@@ -386,40 +471,10 @@ class MonoclinicLattice:
 
 DyCl3 = MonoclinicLattice()
 DyCl3.axes(9.61, 6.49, 7.87, 93.65*pi/180)
-# DyCl3.axes(9.61, 6.49, 7.87, 110*pi/180)
-DyCl3.g_tensor(1.76, 1.76, 16.52, 157*pi/180)
+DyCl3.g_tensor(16.52, 1.76, 157*pi/180)
 DyCl3.ion1_position(0.25, 0.1521, 0.25)
 DyCl3.ion2_position(0.75, 0.8479, 0.75)
-print(DyCl3.configuration_energies(100))
-# print(np.linalg.norm(DyCl3.site_field(100, 1, 1, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 1, 2, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 1, 3, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 2, 1, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 2, 2, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 2, 3, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 3, 1, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 3, 2, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 3, 3, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 4, 1, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 4, 2, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 4, 3, 1, 'A')))
-print(np.linalg.norm(DyCl3.site_field(100, 5, 1, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 5, 2, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 5, 3, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 6, 1, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 6, 2, 1, 'A')))
-# print(np.linalg.norm(DyCl3.site_field(100, 6, 3, 1, 'A')))
-# test = MonoclinicLattice()
-# test.axes(1,1,1,90*pi/180)
-# test.g_tensor(1,1,1,0)
-# test.ion1_position(0.25,0.25,0.25)
-# test.ion2_position(0.75,0.75,0.75)
-# print(test.configuration_energies(20))
-# print(test.site_field(20,3,2,1,'A'))
-# print(test.site_field(20,3,2,2,'A'))
-# print(test.site_field(20,3,2,3,'A'))
-# print(test.site_field(20,3,2,4,'A'))
-# print(test.site_field(20,3,2,5,'A'))
-# print(test.site_field(20,3,2,6,'A'))
-# print(test.site_field(20,3,2,7,'A'))
-# print(test.site_field(20,3,2,8,'A'))
+# print(DyCl3.configuration_energies(100))
+
+print(DyCl3.site_field(100, 12, 1, 1, 'A'))
+print(DyCl3.site_field(100, 1, 1, 1, 'A'))
