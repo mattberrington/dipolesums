@@ -308,7 +308,7 @@ class MonoclinicLattice:
 			L[key+8] = LA[key] - LB[key]
 
 		factor = (mu0*mB**2)/(32*k*pi)/((10**(-10))**3)
-		rho = 2/(np.dot(np.cross(DyCl3.a,DyCl3.b),DyCl3.c)) # I've double checked this using molecular weight
+		rho = 2/(np.dot(np.cross(self.a,self.b),self.c)) # I've double checked this using molecular weight
 		Nx = 2*pi/3
 		Ny = 2*pi/3
 		Nz = -4*pi/3
@@ -390,10 +390,11 @@ class MonoclinicLattice:
 		Bz = factor*(np.sum(Bz_A)+np.sum(Bz_B))
 
 		if(config_number == 1):
-			rho = 2/(np.dot(np.cross(DyCl3.a,DyCl3.b),DyCl3.c))/((10**(-10))**3)
-			mux = 0.5*mB*DyCl3.gx*direction[0]
-			muy = 0.5*mB*DyCl3.gy*direction[1]
-			muz = 0.5*mB*DyCl3.gz*direction[2]
+			rho = 2/(np.dot(np.cross(self.a,self.b),self.c))/((10**(-10))**3)
+			mux = 0.5*mB*self.gx*direction[0]
+			muy = 0.5*mB*self.gy*direction[1]
+			muz = 0.5*mB*self.gz*direction[2]
+
 			M = rho*np.array([mux,muy,muz])
 			Bcavity = mu0*M/3
 			Bx, By, Bz = np.array([Bx, By,Bz]) + Bcavity
@@ -464,17 +465,16 @@ class MonoclinicLattice:
 		ax.text(*self.position["8B"], "8B", color='b')
 		ax.view_init(103, -90)
 
-		ax.set_xlim(2,17)
-		ax.set_ylim(0,15)
-		ax.set_zlim(-10,5)
+		ax.set_xlabel('X axis')
+		ax.set_ylabel('Y axis')
+		ax.set_zlabel('Z axis')
+
+		upper_lim = np.max(np.array(list(self.position.values())),axis=0)
+		lower_lim = np.min(np.array(list(self.position.values())),axis=0)
+		max_range = np.max(upper_lim-lower_lim)/2
+		midpoint = (upper_lim+lower_lim)/2
+
+		ax.set_xlim(midpoint[0]-max_range,midpoint[0]+max_range)
+		ax.set_ylim(midpoint[1]-max_range,midpoint[1]+max_range)
+		ax.set_zlim(midpoint[2]-max_range,midpoint[2]+max_range)
 		plt.show()
-
-DyCl3 = MonoclinicLattice()
-DyCl3.axes(9.61, 6.49, 7.87, 93.65*pi/180)
-DyCl3.g_tensor(16.52, 1.76, 157*pi/180)
-DyCl3.ion1_position(0.25, 0.1521, 0.25)
-DyCl3.ion2_position(0.75, 0.8479, 0.75)
-# print(DyCl3.configuration_energies(100))
-
-print(DyCl3.site_field(100, 12, 1, 1, 'A'))
-print(DyCl3.site_field(100, 1, 1, 1, 'A'))
