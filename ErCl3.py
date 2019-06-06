@@ -16,7 +16,7 @@ ErCl3.ion2_position(0.75, 0.8479, 0.75)
 # print(ErCl3.configuration_energies(100)[14,1])
 # print(ErCl3.configuration_energies(100)[8,1])
 # print(ErCl3.configuration_energies(100)[16,1])
-
+ 
 print(ErCl3.site_field(100,1,1,1,'A'))
 
 print(np.linalg.norm(ErCl3.site_field(100,1,1,1,'A')))
