@@ -74,6 +74,7 @@ def transitions_and_intensity_single(M_gnd,M_exc,Bx,By,Bz):
     trans3_intensity = (np.abs(np.sum(v_exc[:,0]*np.conj(v_gnd[:,1]))))**2
     trans4_intensity = (np.abs(np.sum(v_exc[:,1]*np.conj(v_gnd[:,1]))))**2
     intensities = (trans1_intensity, trans2_intensity, trans3_intensity, trans4_intensity)
+
     return freqs, intensities
 
 def transitions_and_intensities(M_gnd,M_exc,distribution):
@@ -83,10 +84,33 @@ def transitions_and_intensities(M_gnd,M_exc,distribution):
         trans[i], intensities[i] = transitions_and_intensity_single(M_gnd,M_exc,*distribution[i])
     return trans, intensities
 
-def synthetic_spectrum(M_gnd,M_exc,distribution,T):
+def field(M_gnd,Bxs,Bys,Bzs,vertices,T,Bx_applied,By_applied,Bz_applied):   
+    bias = -probabilty_flipped(M_gnd,T,Bx_applied,By_applied,Bz_applied)
+    randoms_orientations = np.sign(np.random.rand(len(vertices))+bias)
+#     M = rho*np.array([mux,muy,muz])*(1-2*probabilty_flipped(T,*B))
+    Bx = np.sum(Bxs*randoms_orientations) + Bx_applied
+    By = np.sum(Bys*randoms_orientations) + By_applied
+    Bz = np.sum(Bzs*randoms_orientations) + Bz_applied
+    return (Bx, By, Bz)
+
+def probabilty_flipped(M_gnd,T,Bx,By,Bz):
+    boltzmann = 20.8368 #GHz/Kelvin
+    p1 = np.exp(-groundsplitting_single(M_gnd,Bx,By,Bz)/(boltzmann*T))
+    p2 = np.exp(-0)
+    propability_flipping = p1/(p1+p2)
+    return propability_flipping
+
+def field_samples(M_gnd,T,Bx,By,Bz,num_samples,Bx_each_ion,By_each_ion,Bz_each_ion,vertices):
+    distribution = np.empty((num_samples,3))
+    for i in range(num_samples):
+        distribution[i] = field(M_gnd,Bx_each_ion,By_each_ion,Bz_each_ion,vertices,T,Bx,By,Bz)
+    return distribution
+
+def synthetic_spectrum(M_gnd,M_exc,T,Bx,By,Bz,sample_length,Bx_each_ion,By_each_ion,Bz_each_ion,vertices,length=2e-3):
+    distribution = field_samples(M_gnd,T,Bx,By,Bz,sample_length,Bx_each_ion,By_each_ion,Bz_each_ion,vertices)
     trans, intensities = transitions_and_intensities(M_gnd,M_exc,distribution)
     splittings = groundsplitting(M_gnd,distribution)
-    plt.figure()
+
     k = 20.8368 #GHz/Kelvin
     boltzmann_factor = np.exp(-splittings/(k*T))
     P_gnd = 1/(1+boltzmann_factor)
@@ -100,10 +124,10 @@ def synthetic_spectrum(M_gnd,M_exc,distribution,T):
     
     weight = P*intensities
 
-    y0,binEdges0 = np.histogram(trans[:,0],weights=weight[:,0],bins=1200,range=(-60,20))
-    y1,binEdges1 = np.histogram(trans[:,3],weights=weight[:,3],bins=1200,range=(-60,20))
-    y2,binEdges2 = np.histogram(trans[:,1],weights=weight[:,1],bins=1200,range=(-60,20))
-    y3,binEdges3 = np.histogram(trans[:,2],weights=weight[:,2],bins=1200,range=(-60,20))
+    y0,binEdges0 = np.histogram(trans[:,0],weights=weight[:,0],bins=300,range=(-30,30))
+    y1,binEdges1 = np.histogram(trans[:,3],weights=weight[:,3],bins=300,range=(-30,30))
+    y2,binEdges2 = np.histogram(trans[:,1],weights=weight[:,1],bins=300,range=(-30,30))
+    y3,binEdges3 = np.histogram(trans[:,2],weights=weight[:,2],bins=300,range=(-30,30))
 
     maxval = np.sum([max(y0),max(y1),max(y2),max(y3)])
     y0 = y0/maxval
@@ -117,15 +141,18 @@ def synthetic_spectrum(M_gnd,M_exc,distribution,T):
     bincenters2 = 0.5*(binEdges2[1:]+binEdges2[:-1])
     bincenters3 = 0.5*(binEdges3[1:]+binEdges3[:-1])
 
-    length = 2e-3
     absorption0 = np.exp(-y0*alpha*length)
     absorption1 = np.exp(-y1*alpha*length)
     absorption2 = np.exp(-y2*alpha*length)
     absorption3 = np.exp(-y3*alpha*length)
 
-    plt.plot(bincenters3,(absorption0*absorption1*absorption2*absorption3))
+    plt.figure()
+    f, ax = plt.subplots()
 
-    plt.ylim(0,1.1)
+    ax.plot(bincenters3,(absorption0*absorption1*absorption2*absorption3),label='All transitions')
+    ax.plot(bincenters3,(absorption0*absorption1),label='Like transitions only')
+    ax.legend()
+
     plt.grid()
-    plt.xlim(-20,20)
-    plt.show()   
+
+    return f,ax
