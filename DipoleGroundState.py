@@ -478,3 +478,63 @@ class MonoclinicLattice:
         ax.set_ylim(midpoint[1]-max_range,midpoint[1]+max_range)
         ax.set_zlim(midpoint[2]-max_range,midpoint[2]+max_range)
         plt.show()
+
+class Tetragonal:
+        def __init__(self):
+        #Based of positions given in Figure 1 of Niemeijer paper
+        self.position = {}
+
+    def axes(self,a_len,c_len):
+        """ Define the crystalographic properties of the lattice
+        Args:
+        a_len (float): length of the 'a' crystal vector
+        c_len (float): length of the 'c' crystal vector
+        Returns:
+            None
+        """
+        self.a = np.array([a_len,0,0])
+        self.b = np.array([0,b_len,0])
+        self.c = np.array([0,0,c_len])
+
+    def g_tensor(self,gpara,gperp):
+        """ Define the g-tensor of the crystal.         
+        Args:
+        gpara (float): axial component of g tensor
+        gperp (float): perdendicular component of g tensor
+
+        Returns:
+            None
+        """
+        gx = gperp
+        gy = gperp
+        gz = gpara
+
+        self.gx = gx
+        self.gy = gy
+        self.gz = gz
+        self.g_grid = np.array([[gx*gx, gx*gy, gx*gz],[gy*gx, gy*gy, gy*gz],[gz*gx, gz*gy, gz*gz]])
+        # rotate the crystal coordinates so that I'm now in the coordinate system 
+        # given by the zeeman tensor's principal axes
+
+        def ion1_position(self,x,y,z):
+        """ Define the position of the first ion within the unit cell
+        Populates the position dictionary with the locations of this ion in a double unit cell
+        
+        Args:
+        x (float): x coordinate expressed as a fraction of crystal a vector (between 0 and 1)
+        y (float): y coordinate expressed as a fraction of crystal b vector (between 0 and 1)
+        z (float): z coordinate expressed as a fraction of crystal c vector (between 0 and 1)
+
+        Returns:
+            None
+        """
+        axes_vector = np.array([self.a,self.b,self.c])
+        self.ion1 = x*self.a + y*self.b + z*self.c
+        self.position['1A'] = np.dot(self.position_map[1],axes_vector) + self.ion1
+        self.position['2A'] = np.dot(self.position_map[2],axes_vector) + self.ion1
+        self.position['3A'] = np.dot(self.position_map[3],axes_vector) + self.ion1
+        self.position['4A'] = np.dot(self.position_map[4],axes_vector) + self.ion1
+        self.position['5A'] = np.dot(self.position_map[5],axes_vector) + self.ion1
+        self.position['6A'] = np.dot(self.position_map[6],axes_vector) + self.ion1
+        self.position['7A'] = np.dot(self.position_map[7],axes_vector) + self.ion1
+        self.position['8A'] = np.dot(self.position_map[8],axes_vector) + self.ion1

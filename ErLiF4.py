@@ -3,11 +3,14 @@ import numpy as np
 
 pi = np.pi
 
-ErCl3 = MonoclinicLattice()
-ErCl3.axes(9.57, 6.47, 7.84, 93.65*pi/180)
-ErCl3.g_tensor(13.74, 0.75, 257*pi/180)
-ErCl3.ion1_position(0.25, 0.1521, 0.25)
-ErCl3.ion2_position(0.75, 0.8479, 0.75)
+ErLiF4 = MonoclinicLattice()
+ErLiF4.axes(5.162, 5.162, 10.70, 90*pi/180)
+ErCl3.g_tensor(3.147, 8.105, 90*pi/180)
+ErCl3.ion1_position(0.5, 0.5, 0.0)
+ErCl3.ion2_position(0.5, 0.0, 0.25)
+ErCl3.ion3_position(0.0, 0.5, 0.75)
+ErCl3.ion4_position(0.0, 0.0, 0.5)
+
 
 print(np.dot(np.cross(ErCl3.a,ErCl3.b),ErCl3.c))
 
