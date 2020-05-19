@@ -1,4 +1,4 @@
-from DipoleGroundState import MonoclinicLattice
+from luttingertisza_groundstate import MonoclinicLattice
 import numpy as np
 
 pi = np.pi
