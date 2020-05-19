@@ -5,14 +5,13 @@ pi = np.pi
 
 ErLiF4 = MonoclinicLattice()
 ErLiF4.axes(5.162, 5.162, 10.70, 90*pi/180)
-ErCl3.g_tensor(3.147, 8.105, 90*pi/180)
-ErCl3.ion1_position(0.5, 0.5, 0.0)
-ErCl3.ion2_position(0.5, 0.0, 0.25)
-ErCl3.ion3_position(0.0, 0.5, 0.75)
-ErCl3.ion4_position(0.0, 0.0, 0.5)
+ErLiF4.g_tensor(3.147, 8.105, 90*pi/180)
+ErLiF4.ion1_position(0.5, 0.5, 0.0)
+ErLiF4.ion2_position(0.5, 0.0, 0.25)
+ErLiF4.ion3_position(0.0, 0.5, 0.75)
+ErLiF4.ion4_position(0.0, 0.0, 0.5)
 
 
-print(np.dot(np.cross(ErCl3.a,ErCl3.b),ErCl3.c))
 
 
 # print(ErCl3.configuration_energies(100)[3,1])

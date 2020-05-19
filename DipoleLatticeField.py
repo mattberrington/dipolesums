@@ -152,6 +152,76 @@ class MonoclinicLattice:
             vertices = vertices[(distance < R) & (distance != 0.0)]
             lattices[key] = vertices
         return lattices
+
+    def D_terms(self, R, sublattice1, sublattice2):
+        """
+        Returns the sums of the geometric Dipole Tensor terms. 
+        It will sum the dipole tensors between sublattice1 and sublattice2
+        Defined by Eqn 3 of Kraemer et al, "Dipolar Antiferromagnetism and Quantum Criticality in LiErF4", 10.1126/science.1221878
+        Returns Eqn 3 times the crystal unit cell, so the result is unitless
+        Args:
+        R (float): The radius of the sphere (in angstroms) to sum over
+        sublattice1 (int): specifies which ion position of sublattice 1
+        sublattice2 (int): specifies which ion position of sublattice 2
+   
+        Returns:
+        D_terms (array): an array of nine terms, ordered xx, xy, xz, yx, yy, yz, zx, zy, zz
+        """
+
+        vertices = self.spherical_bravais_lattice(R,sublattice2)
+        #the ion location where I'm evaluating the lattice_sum
+        central_ion_vector = self.position[sublattice1]
+
+        lattices = self.spherical_bravais_lattice(R,sublattice1)
+
+        vertices = lattices[sublattice2]
+
+        rx = vertices[:,0] - central_ion_vector[0]
+        ry = vertices[:,1] - central_ion_vector[1]
+        rz = vertices[:,2] - central_ion_vector[2]
+        rtot = np.sqrt(np.sum(np.power(vertices - central_ion_vector,2),axis=1))
+        V = self.a[0]*self.b[1]*self.c[2] #unit cell volume
+
+        Dxx = V*np.sum(-(1/rtot**3) + (3*rx*rx)/(rtot**5))
+        Dxy = V*np.sum((3*rx*ry)/(rtot**5))
+        Dxz = V*np.sum((3*rx*rz)/(rtot**5))
+        Dyx = V*np.sum((3*ry*rx)/(rtot**5))
+        Dyy = V*np.sum(-(1/rtot**3) + (3*ry*ry)/(rtot**5))
+        Dyz = V*np.sum((3*ry*rz)/(rtot**5))
+        Dzx = V*np.sum((3*rz*rx)/(rtot**5))
+        Dzy = V*np.sum((3*rz*ry)/(rtot**5))
+        Dzz = V*np.sum(-(1/rtot**3) + (3*rz*rz)/(rtot**5))
+
+        return Dxx, Dxy, Dxz, Dyx, Dyy, Dyz, Dzx, Dzy, Dzz
+
+    def J_terms(self, R, sublattice1, sublattice2):
+        """
+        Returns the sums of the Dipole Tensor terms, incorporation the anisotropic g factor
+        It will sum the dipole tensors between sublattice1 and sublattice2
+        Defined by Eqn 3 of Kraemer et al, "Dipolar Antiferromagnetism and Quantum Criticality in LiErF4", 10.1126/science.1221878
+        Returns Eqn 3 times the relevant g tensors and the crystal unit cell, so the result is unitless
+        Args:
+        R (float): The radius of the sphere (in angstroms) to sum over
+        sublattice1 (int): specifies which ion position of sublattice 1
+        sublattice2 (int): specifies which ion position of sublattice 2
+   
+        Returns:
+        J_terms (array): an array of nine terms, ordered xx, xy, xz, yx, yy, yz, zx, zy, zz
+        """
+
+        Dxx, Dxy, Dxz, Dyx, Dyy, Dyz, Dzx, Dzy, Dzz = self.D_terms(R, sublattice1, sublattice2)
+        Jxx = Dxx*self.gx*self.gx
+        Jxy = Dxx*self.gx*self.gy
+        Jxz = Dxx*self.gx*self.gz
+        Jyx = Dyy*self.gy*self.gx
+        Jyy = Dyy*self.gy*self.gy
+        Jyz = Dyy*self.gy*self.gz
+        Jzx = Dzz*self.gz*self.gx
+        Jzy = Dzz*self.gz*self.gy
+        Jzz = Dzz*self.gz*self.gz
+
+        return Jxx, Jxy, Jxz, Jyx, Jyy, Jyz, Jzx, Jzy, Jzz
+  
     def site_field(self, R, central_ion):
         vertices = self.spherical_bravais_lattice(R,central_ion)
         #the ion location where I'm evaluating the magnetic field
@@ -186,7 +256,6 @@ class MonoclinicLattice:
             Bz += factor*np.sum(-(muz/rtot**3) + (3*(mux*rx + muy*ry + muz*rz)*rz)/(rtot**5))
 
         return np.array([Bx, By, Bz])
-
 class Tetragonal:
     def __init__(self):
         self.position = {}
@@ -310,6 +379,75 @@ class Tetragonal:
         self.lattices = lattices        
         return lattices
 
+    def D_terms(self, R, sublattice1, sublattice2):
+        """
+        Returns the sums of the geometric Dipole Tensor terms. 
+        It will sum the dipole tensors between sublattice1 and sublattice2
+        Defined by Eqn 3 of Kraemer et al, "Dipolar Antiferromagnetism and Quantum Criticality in LiErF4", 10.1126/science.1221878
+        Returns Eqn 3 times the crystal unit cell, so the result is unitless
+        Args:
+        R (float): The radius of the sphere (in angstroms) to sum over
+        sublattice1 (int): specifies which ion position of sublattice 1
+        sublattice2 (int): specifies which ion position of sublattice 2
+   
+        Returns:
+        D_terms (array): an array of nine terms, ordered xx, xy, xz, yx, yy, yz, zx, zy, zz
+        """
+
+        vertices = self.spherical_bravais_lattice(R,sublattice2)
+        #the ion location where I'm evaluating the lattice_sum
+        central_ion_vector = self.position[sublattice1]
+
+        lattices = self.spherical_bravais_lattice(R,sublattice1)
+
+        vertices = lattices[sublattice2]
+
+        rx = vertices[:,0] - central_ion_vector[0]
+        ry = vertices[:,1] - central_ion_vector[1]
+        rz = vertices[:,2] - central_ion_vector[2]
+        rtot = np.sqrt(np.sum(np.power(vertices - central_ion_vector,2),axis=1))
+        V = self.a[0]*self.b[1]*self.c[2] #unit cell volume
+
+        Dxx = V*np.sum(-(1/rtot**3) + (3*rx*rx)/(rtot**5))
+        Dxy = V*np.sum((3*rx*ry)/(rtot**5))
+        Dxz = V*np.sum((3*rx*rz)/(rtot**5))
+        Dyx = V*np.sum((3*ry*rx)/(rtot**5))
+        Dyy = V*np.sum(-(1/rtot**3) + (3*ry*ry)/(rtot**5))
+        Dyz = V*np.sum((3*ry*rz)/(rtot**5))
+        Dzx = V*np.sum((3*rz*rx)/(rtot**5))
+        Dzy = V*np.sum((3*rz*ry)/(rtot**5))
+        Dzz = V*np.sum(-(1/rtot**3) + (3*rz*rz)/(rtot**5))
+
+        return Dxx, Dxy, Dxz, Dyx, Dyy, Dyz, Dzx, Dzy, Dzz
+
+    def J_terms(self, R, sublattice1, sublattice2):
+        """
+        Returns the sums of the Dipole Tensor terms, incorporation the anisotropic g factor
+        It will sum the dipole tensors between sublattice1 and sublattice2
+        Defined by Eqn 3 of Kraemer et al, "Dipolar Antiferromagnetism and Quantum Criticality in LiErF4", 10.1126/science.1221878
+        Returns Eqn 3 times the relevant g tensors and the crystal unit cell, so the result is unitless
+        Args:
+        R (float): The radius of the sphere (in angstroms) to sum over
+        sublattice1 (int): specifies which ion position of sublattice 1
+        sublattice2 (int): specifies which ion position of sublattice 2
+   
+        Returns:
+        J_terms (array): an array of nine terms, ordered xx, xy, xz, yx, yy, yz, zx, zy, zz
+        """
+
+        Dxx, Dxy, Dxz, Dyx, Dyy, Dyz, Dzx, Dzy, Dzz = self.D_terms(R, sublattice1, sublattice2)
+        Jxx = Dxx*self.gx*self.gx
+        Jxy = Dxx*self.gx*self.gy
+        Jxz = Dxx*self.gx*self.gz
+        Jyx = Dyy*self.gy*self.gx
+        Jyy = Dyy*self.gy*self.gy
+        Jyz = Dyy*self.gy*self.gz
+        Jzx = Dzz*self.gz*self.gx
+        Jzy = Dzz*self.gz*self.gy
+        Jzz = Dzz*self.gz*self.gz
+
+        return Jxx, Jxy, Jxz, Jyx, Jyy, Jyz, Jzx, Jzy, Jzz
+
     def site_field(self, R, central_ion):
         vertices = self.spherical_bravais_lattice(R,central_ion)
         #the ion location where I'm evaluating the magnetic field
@@ -336,6 +474,8 @@ class Tetragonal:
             mux = 0.5*mB*self.gx*direction[0]
             muy = 0.5*mB*self.gy*direction[1]
             muz = 0.5*mB*self.gz*direction[2]
+            # print('Sublattice ' + str(key))
+            # print(np.sum(-(1/rtot**3) + (3*(1*rx)*rx)/(rtot**5)))
 
             Bx += factor*np.sum(-(mux/rtot**3) + (3*(mux*rx + muy*ry + muz*rz)*rx)/(rtot**5))
             By += factor*np.sum(-(muy/rtot**3) + (3*(mux*rx + muy*ry + muz*rz)*ry)/(rtot**5))

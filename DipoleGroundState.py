@@ -480,7 +480,7 @@ class MonoclinicLattice:
         plt.show()
 
 class Tetragonal:
-        def __init__(self):
+    def __init__(self):
         #Based of positions given in Figure 1 of Niemeijer paper
         self.position = {}
 
@@ -516,7 +516,7 @@ class Tetragonal:
         # rotate the crystal coordinates so that I'm now in the coordinate system 
         # given by the zeeman tensor's principal axes
 
-        def ion1_position(self,x,y,z):
+    def ion1_position(self,x,y,z):
         """ Define the position of the first ion within the unit cell
         Populates the position dictionary with the locations of this ion in a double unit cell
         
