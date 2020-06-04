@@ -211,13 +211,13 @@ class MonoclinicLattice:
 
         Dxx, Dxy, Dxz, Dyx, Dyy, Dyz, Dzx, Dzy, Dzz = self.D_terms(R, sublattice1, sublattice2)
         Jxx = Dxx*self.gx*self.gx
-        Jxy = Dxx*self.gx*self.gy
-        Jxz = Dxx*self.gx*self.gz
-        Jyx = Dyy*self.gy*self.gx
+        Jxy = Dxy*self.gx*self.gy
+        Jxz = Dxz*self.gx*self.gz
+        Jyx = Dyx*self.gy*self.gx
         Jyy = Dyy*self.gy*self.gy
-        Jyz = Dyy*self.gy*self.gz
-        Jzx = Dzz*self.gz*self.gx
-        Jzy = Dzz*self.gz*self.gy
+        Jyz = Dyz*self.gy*self.gz
+        Jzx = Dzx*self.gz*self.gx
+        Jzy = Dzy*self.gz*self.gy
         Jzz = Dzz*self.gz*self.gz
 
         return Jxx, Jxy, Jxz, Jyx, Jyy, Jyz, Jzx, Jzy, Jzz
@@ -437,13 +437,13 @@ class Tetragonal:
 
         Dxx, Dxy, Dxz, Dyx, Dyy, Dyz, Dzx, Dzy, Dzz = self.D_terms(R, sublattice1, sublattice2)
         Jxx = Dxx*self.gx*self.gx
-        Jxy = Dxx*self.gx*self.gy
-        Jxz = Dxx*self.gx*self.gz
-        Jyx = Dyy*self.gy*self.gx
+        Jxy = Dxy*self.gx*self.gy
+        Jxz = Dxz*self.gx*self.gz
+        Jyx = Dyx*self.gy*self.gx
         Jyy = Dyy*self.gy*self.gy
-        Jyz = Dyy*self.gy*self.gz
-        Jzx = Dzz*self.gz*self.gx
-        Jzy = Dzz*self.gz*self.gy
+        Jyz = Dyz*self.gy*self.gz
+        Jzx = Dzx*self.gz*self.gx
+        Jzy = Dzy*self.gz*self.gy
         Jzz = Dzz*self.gz*self.gz
 
         return Jxx, Jxy, Jxz, Jyx, Jyy, Jyz, Jzx, Jzy, Jzz
